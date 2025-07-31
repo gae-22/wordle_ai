@@ -63,6 +63,205 @@ class WordleDisplay:
         self.console.print(panel)
         self.console.print()
 
+    def show_main_menu(self) -> None:
+        """Display the main interactive menu."""
+        menu_text = Text()
+        menu_text.append("Main Menu\n\n", style="bold cyan")
+        menu_text.append("1. 🎯 Play Interactive Game\n", style="white")
+        menu_text.append("2. 📊 Run Benchmark Tests\n", style="white")
+        menu_text.append("3. ⚙️  Configure Solver\n", style="white")
+        menu_text.append("4. 📈 View Analytics\n", style="white")
+        menu_text.append("5. 🤖 Train ML Models\n", style="white")
+        menu_text.append("6. 🔧 Settings\n", style="white")
+        menu_text.append("0. 🚪 Exit\n", style="red")
+
+        panel = Panel(
+            menu_text,
+            title="WORDLE AI Solver",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+
+        self.console.print(panel)
+
+    def show_game_board(self) -> None:
+        """Display empty game board."""
+        self.console.print("\n[bold cyan]🎯 WORDLE Game Board[/bold cyan]")
+        self.console.print("=" * 50)
+
+        # Show empty rows
+        for i in range(6):
+            row = "⬜ ⬜ ⬜ ⬜ ⬜"
+            self.console.print(f"Attempt {i+1}: {row}")
+
+        self.console.print("=" * 50)
+
+    def show_guess_result(self, result: any, attempt: int) -> None:
+        """Display result of a guess.
+
+        Args:
+            result: GuessResult object
+            attempt: Current attempt number
+        """
+        # Convert pattern to visual representation
+        visual_pattern = ""
+        for i, char in enumerate(result.pattern):
+            letter = result.guess[i]
+            if char == 'G':
+                visual_pattern += f"🟩"
+            elif char == 'Y':
+                visual_pattern += f"🟨"
+            else:
+                visual_pattern += f"⬜"
+
+        self.console.print(f"Attempt {attempt}: {visual_pattern} ({result.guess})")
+        self.console.print(f"[dim]Remaining: {result.remaining_words} words | "
+                          f"Entropy: {result.entropy:.2f} | "
+                          f"ML Score: {result.ml_score:.2f} | "
+                          f"Time: {result.processing_time:.3f}s[/dim]")
+
+    def show_remaining_words(self, words: list[str]) -> None:
+        """Display remaining possible words.
+
+        Args:
+            words: List of remaining words
+        """
+        if not words:
+            return
+
+        self.console.print("\n[bold yellow]Remaining possibilities:[/bold yellow]")
+        word_text = " | ".join(f"[cyan]{word}[/cyan]" for word in words)
+        self.console.print(word_text)
+
+    def show_game_result(self, result: any) -> None:
+        """Display final game result.
+
+        Args:
+            result: GameResult object
+        """
+        if result.solved:
+            title = f"🎉 Success! Solved in {result.attempts} attempts"
+            style = "green"
+        else:
+            title = f"❌ Not solved in {result.attempts} attempts"
+            style = "red"
+
+        # Create result table
+        result_table = Table(title=title, title_style=style)
+        result_table.add_column("Attempt", style="cyan")
+        result_table.add_column("Guess", style="bold")
+        result_table.add_column("Pattern", style="white")
+        result_table.add_column("Remaining", style="yellow")
+        result_table.add_column("Time (s)", style="dim")
+
+        for i, guess_result in enumerate(result.guesses, 1):
+            # Convert pattern to visual
+            pattern_visual = ""
+            for j, char in enumerate(guess_result.pattern):
+                if char == 'G':
+                    pattern_visual += "🟩"
+                elif char == 'Y':
+                    pattern_visual += "🟨"
+                else:
+                    pattern_visual += "⬜"
+
+            result_table.add_row(
+                str(i),
+                guess_result.guess,
+                pattern_visual,
+                str(guess_result.remaining_words),
+                f"{guess_result.processing_time:.3f}"
+            )
+
+        self.console.print(result_table)
+        self.console.print(f"\n[bold]Total time: {result.total_time:.3f}s[/bold]")
+        self.console.print(f"[bold]Strategy used: {result.strategy_used}[/bold]")
+
+    def show_settings(self, settings: dict) -> None:
+        """Display current settings.
+
+        Args:
+            settings: Dictionary of current settings
+        """
+        settings_table = Table(title="Current Settings")
+        settings_table.add_column("Setting", style="cyan")
+        settings_table.add_column("Value", style="yellow")
+
+        for key, value in settings.items():
+            settings_table.add_row(
+                key.replace('_', ' ').title(),
+                str(value)
+            )
+
+        self.console.print(settings_table)
+
+    def show_training_results(self, results: dict) -> None:
+        """Display ML training results.
+
+        Args:
+            results: Training results dictionary
+        """
+        self.console.print(Panel(
+            f"[bold green]Training completed successfully![/bold green]\n"
+            f"Models trained: {len(results.get('models', []))}\n"
+            f"Training time: {results.get('training_time', 0):.2f}s\n"
+            f"Accuracy: {results.get('accuracy', 0):.2%}",
+            title="Training Results",
+            border_style="green"
+        ))
+
+    def show_analytics_results(self, results: dict, analytics_type: str) -> None:
+        """Display analytics results.
+
+        Args:
+            results: Analytics results dictionary
+            analytics_type: Type of analytics performed
+        """
+        title = f"{analytics_type.title()} Analytics"
+
+        if analytics_type == "strategy":
+            self._show_strategy_analytics(results)
+        elif analytics_type == "difficulty":
+            self._show_difficulty_analytics(results)
+        elif analytics_type == "performance":
+            self.show_performance_optimization_results(results)
+        else:  # learning
+            self.show_adaptive_learning_summary(results)
+
+    def _show_strategy_analytics(self, results: dict) -> None:
+        """Show strategy comparison analytics."""
+        strategy_table = Table(title="Strategy Performance Comparison")
+        strategy_table.add_column("Strategy", style="cyan")
+        strategy_table.add_column("Success Rate", style="green")
+        strategy_table.add_column("Avg Attempts", style="yellow")
+        strategy_table.add_column("Avg Time", style="blue")
+
+        for strategy, stats in results.items():
+            strategy_table.add_row(
+                strategy.title(),
+                f"{stats.get('success_rate', 0):.1%}",
+                f"{stats.get('avg_attempts', 0):.1f}",
+                f"{stats.get('avg_time', 0):.3f}s"
+            )
+
+        self.console.print(strategy_table)
+
+    def _show_difficulty_analytics(self, results: dict) -> None:
+        """Show word difficulty analytics."""
+        difficulty_table = Table(title="Word Difficulty Analysis")
+        difficulty_table.add_column("Difficulty", style="cyan")
+        difficulty_table.add_column("Word Count", style="yellow")
+        difficulty_table.add_column("Avg Attempts", style="red")
+
+        for difficulty, stats in results.items():
+            difficulty_table.add_row(
+                difficulty.title(),
+                str(stats.get('count', 0)),
+                f"{stats.get('avg_attempts', 0):.1f}"
+            )
+
+        self.console.print(difficulty_table)
+
     def show_goodbye(self) -> None:
         """Display goodbye message."""
         goodbye_text = Text()

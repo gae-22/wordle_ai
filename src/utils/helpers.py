@@ -51,12 +51,13 @@ def normalize_word(word: str) -> str:
     return normalized
 
 
-def setup_logging(level: str = "INFO", log_file: str | None = None) -> None:
+def setup_logging(level: str = "INFO", log_file: str | None = None, quiet: bool = False) -> None:
     """Set up structured logging for the application.
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
         log_file: Optional log file path
+        quiet: Suppress console output if True
     """
     # Convert string level to logging constant
     numeric_level = getattr(logging, level.upper(), logging.INFO)
@@ -74,11 +75,12 @@ def setup_logging(level: str = "INFO", log_file: str | None = None) -> None:
     # Clear existing handlers
     root_logger.handlers.clear()
 
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(numeric_level)
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
+    # Console handler (unless quiet mode)
+    if not quiet:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(numeric_level)
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
 
     # File handler (optional)
     if log_file:
@@ -92,7 +94,8 @@ def setup_logging(level: str = "INFO", log_file: str | None = None) -> None:
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
         except Exception as e:
-            root_logger.warning(f"Failed to setup file logging: {e}")
+            if not quiet:
+                root_logger.warning(f"Failed to setup file logging: {e}")
 
     # Set specific logger levels
     logging.getLogger("urllib3").setLevel(logging.WARNING)

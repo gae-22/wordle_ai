@@ -98,15 +98,17 @@ performance = [
 ]
 all = ["wordle-ai[dev,test,lint,docs,performance]"]
 
+[project.scripts]
+wordle-ai = "src.main:main"
+wordle = "src.main:main"
+wordle-solver = "src.main:main"
+
 [project.urls]
 Homepage = "https://github.com/gae-22/wordle_ai"
 Repository = "https://github.com/gae-22/wordle_ai"
 Documentation = "https://github.com/gae-22/wordle_ai#readme"
 Issues = "https://github.com/gae-22/wordle_ai/issues"
 Changelog = "https://github.com/gae-22/wordle_ai/releases"
-
-[project.scripts]
-wordle-solver = "src.main:main"
 
 [build-system]
 requires = ["hatchling"]

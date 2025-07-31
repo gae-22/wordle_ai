@@ -1,6 +1,6 @@
 # 🎯 WORDLE AI Solver
 
-A sophisticated Terminal User Interface (TUI) based WORDLE solver that combines information theory, entropy calculations, and machine learning to provide optimal guess recommendations with adaptive learning capabilities.
+A sophisticated **Interactive Terminal User Interface (TUI) based** WORDLE solver that combines information theory, entropy calculations, and machine learning to provide optimal guess recommendations with adaptive learning capabilities.
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -8,9 +8,10 @@ A sophisticated Terminal User Interface (TUI) based WORDLE solver that combines 
 
 ## 🌟 Features
 
+-   **🎮 Interactive TUI Experience**: Beautiful, menu-driven terminal interface (default mode)
 -   **🧠 Information Theory Approach**: Shannon entropy calculations for optimal guess selection
 -   **🤖 Machine Learning Integration**: Adaptive learning from game outcomes with neural networks
--   **🎨 Beautiful TUI**: Rich terminal interface with colors, panels, and interactive components
+-   **🎨 Rich Visual Interface**: Colors, panels, progress bars, and interactive components
 -   **📊 Advanced Analytics**: Comprehensive statistical analysis and strategy comparison tools
 -   **🎯 Strategy Optimization**: Game theory-based optimization algorithms
 -   **🔮 Difficulty Prediction**: ML-powered word difficulty assessment
@@ -46,28 +47,48 @@ A sophisticated Terminal User Interface (TUI) based WORDLE solver that combines 
 
 ### Usage
 
-#### Interactive Mode (Default)
+#### 🎮 Interactive TUI Mode (Default & Recommended)
+
+**Start the interactive TUI application:**
 
 ```bash
+# Using uv run
+uv run wordle-ai
+
+# Or using the module directly
 uv run python -m src.main
+
+# Alternative entry points
+uv run wordle
+uv run wordle-solver
 ```
 
-#### Solve Specific Word
+**Interactive Menu Options:**
+
+-   🎯 **Play Interactive Game**: Step-by-step solving with AI recommendations
+-   📊 **Run Benchmark Tests**: Performance analysis across word lists
+-   ⚙️ **Configure Solver**: Customize strategies and settings
+-   📈 **View Analytics**: Detailed statistical insights
+-   🤖 **Train ML Models**: Improve AI performance
+-   🔧 **Settings**: Manage preferences and configurations
+
+#### Command Line Options
 
 ```bash
-uv run python -m src.main --word AROSE
-```
+# Solve specific word interactively
+uv run wordle-ai --solve AROSE
 
-#### Run Benchmarks
+# Run benchmark tests with TUI
+uv run wordle-ai --benchmark
 
-```bash
-uv run python -m src.main --benchmark
-```
+# Train ML models with progress display
+uv run wordle-ai --train
 
-#### Available Options
+# Configure strategy
+uv run wordle-ai --strategy hybrid
 
-```bash
-uv run python -m src.main --help
+# Show all options
+uv run wordle-ai --help
 ```
 
 ## 📊 Performance
@@ -87,6 +108,72 @@ Our solver achieves exceptional performance on the official WORDLE word list:
 | ML       | 99.8%        | 3.15         | 0.002s   |
 | Hybrid   | 100.0%       | 2.97         | 0.001s   |
 
+## 🎮 Interactive TUI Experience
+
+### Game Flow Example
+
+```
+🎯 WORDLE AI SOLVER 🎯
+Intelligent Terminal-based Puzzle Solver
+
+┌─────────────── Main Menu ───────────────┐
+│                                         │
+│  1. 🎯 Play Interactive Game            │
+│  2. 📊 Run Benchmark Tests              │
+│  3. ⚙️  Configure Solver                │
+│  4. 📈 View Analytics                   │
+│  5. 🤖 Train ML Models                  │
+│  6. 🔧 Settings                         │
+│  0. 🚪 Exit                             │
+└─────────────────────────────────────────┘
+
+Select an option [1]: 1
+
+🎯 Starting Interactive WORDLE Game
+Game mode (interactive/target/random) [interactive]: interactive
+
+🎯 WORDLE Game Board
+==================================================
+Attempt 1: ⬜ ⬜ ⬜ ⬜ ⬜
+Attempt 2: ⬜ ⬜ ⬜ ⬜ ⬜
+Attempt 3: ⬜ ⬜ ⬜ ⬜ ⬜
+Attempt 4: ⬜ ⬜ ⬜ ⬜ ⬜
+Attempt 5: ⬜ ⬜ ⬜ ⬜ ⬜
+Attempt 6: ⬜ ⬜ ⬜ ⬜ ⬜
+==================================================
+
+💡 Recommended Guess: AROSE
+🎯 Remaining Words: 2,315
+
+What would you like to do? (accept/custom/manual) [accept]: accept
+
+Enter the pattern for 'AROSE' (G=🟩, Y=🟨, X=⬜): XGXXG
+
+Attempt 1: ⬜🟩⬜⬜🟩 (AROSE)
+Remaining: 23 words | Entropy: 4.85 | ML Score: 0.92 | Time: 0.003s
+
+Remaining possibilities:
+ELIDE | ELUTE | OLDIE | OXIDE | PRIDE | QUITE | UNCLE | WHITE | WROTE
+```
+
+### Analytics Dashboard
+
+```
+📈 Analytics Dashboard
+
+┌────── Strategy Performance Comparison ──────┐
+│ Strategy │ Success Rate │ Avg Attempts │     │
+├──────────┼──────────────┼───────────────┤     │
+│ Entropy  │ 100.0%       │ 3.02          │     │
+│ ML       │ 99.8%        │ 3.15          │     │
+│ Hybrid   │ 100.0%       │ 2.97          │     │
+└─────────────────────────────────────────────┘
+
+Current Strategy Weights:
+  entropy: ████████████████████ 0.700
+       ml: ████████░░░░░░░░░░░░ 0.300
+```
+
 ## 🏗️ Architecture
 
 ### Project Structure
@@ -94,23 +181,23 @@ Our solver achieves exceptional performance on the official WORDLE word list:
 ```
 src/
 ├── __init__.py              # Version and core exceptions
-├── main.py                  # CLI entry point
+├── main.py                  # TUI application entry point & CLI orchestration
 ├── solver/                  # Core solving logic
 │   ├── __init__.py
 │   ├── engine.py           # Main solving orchestration
-│   ├── entropy.py          # Shannon entropy calculations
-│   └── strategy.py         # Guessing strategies
-├── data/                   # Word lists and game data
+│   ├── entropy.py          # Information theory calculations
+│   └── strategy.py         # Strategy implementations
+├── data/                   # Data management
 │   ├── __init__.py
-│   ├── words.py           # Word list management with web download
+│   ├── words.py           # Word list management
 │   └── patterns.py        # Pattern matching logic
 ├── ml/                     # Machine learning components
 │   ├── __init__.py
-│   ├── features.py        # Feature engineering
 │   ├── models.py          # ML model definitions
-│   ├── neural_models.py   # Neural network implementations
-│   ├── adaptive_learning.py # Adaptive learning algorithms
-│   ├── performance_optimization.py # Performance optimization tools
+│   ├── features.py        # Feature engineering
+│   ├── neural_models.py   # Neural network models
+│   ├── adaptive_learning.py # Online learning algorithms
+│   ├── performance_optimization.py # Performance tuning
 │   ├── prediction.py      # Prediction engine
 │   └── training.py        # Model training logic
 ├── analytics/              # Advanced analytics (Phase 4) ✅
@@ -119,14 +206,66 @@ src/
 │   ├── strategy_comparison.py # Strategy comparison
 │   ├── difficulty_prediction.py # Word difficulty prediction
 │   └── game_theory.py     # Game theory optimization
-├── ui/                     # Terminal user interface
+├── ui/                     # Interactive Terminal User Interface ⭐
 │   ├── __init__.py
-│   ├── display.py         # Rich-based UI components
-│   └── input.py           # User input handling
+│   ├── display.py         # Rich-based UI components & TUI layouts
+│   └── input.py           # User input handling & validation
 └── utils/                  # Utility functions
     ├── __init__.py
     └── helpers.py         # Common helper functions
 ```
+
+### TUI Architecture
+
+The Terminal User Interface is the **core** of this application, built with the Rich library:
+
+#### Display Components (`ui/display.py`)
+
+-   **Welcome Screen**: Beautiful branded interface with feature overview
+-   **Main Menu**: Interactive menu system with numbered options
+-   **Game Board**: Visual representation of WORDLE grid with emoji feedback
+-   **Analytics Dashboard**: Real-time charts, tables, and progress bars
+-   **Results Display**: Comprehensive game results with statistics
+
+#### Input Handling (`ui/input.py`)
+
+-   **GameInputHandler**: Specialized input validation for WORDLE patterns
+-   **Menu Navigation**: Robust choice validation and error handling
+-   **Pattern Input**: Visual guides for entering game feedback (G/Y/X format)
+-   **Settings Configuration**: Interactive configuration wizards
+    ├── solver/ # Core solving logic
+    │ ├── **init**.py
+    │ ├── engine.py # Main solving orchestration
+    │ ├── entropy.py # Shannon entropy calculations
+    │ └── strategy.py # Guessing strategies
+    ├── data/ # Word lists and game data
+    │ ├── **init**.py
+    │ ├── words.py # Word list management with web download
+    │ └── patterns.py # Pattern matching logic
+    ├── ml/ # Machine learning components
+    │ ├── **init**.py
+    │ ├── features.py # Feature engineering
+    │ ├── models.py # ML model definitions
+    │ ├── neural_models.py # Neural network implementations
+    │ ├── adaptive_learning.py # Adaptive learning algorithms
+    │ ├── performance_optimization.py # Performance optimization tools
+    │ ├── prediction.py # Prediction engine
+    │ └── training.py # Model training logic
+    ├── analytics/ # Advanced analytics (Phase 4) ✅
+    │ ├── **init**.py
+    │ ├── statistics.py # Statistical analysis tools
+    │ ├── strategy_comparison.py # Strategy comparison
+    │ ├── difficulty_prediction.py # Word difficulty prediction
+    │ └── game_theory.py # Game theory optimization
+    ├── ui/ # Terminal user interface
+    │ ├── **init**.py
+    │ ├── display.py # Rich-based UI components
+    │ └── input.py # User input handling
+    └── utils/ # Utility functions
+    ├── **init**.py
+    └── helpers.py # Common helper functions
+
+````
 
 ### Core Algorithms
 
@@ -170,7 +309,7 @@ uv run mypy src/
 
 # Run tests
 uv run pytest
-```
+````
 
 ### Code Quality Standards
 

@@ -297,3 +297,121 @@ class InputHandler:
     def clear_screen(self) -> None:
         """Clear the terminal screen."""
         self.console.clear()
+
+
+class GameInputHandler(InputHandler):
+    """Game-specific input handler for WORDLE AI.
+
+    Extends InputHandler with game-specific input methods
+    for interactive WORDLE solving.
+    """
+
+    def get_menu_choice(self) -> str:
+        """Get main menu choice from user.
+
+        Returns:
+            Selected menu option as string
+        """
+        return Prompt.ask(
+            "\n[bold cyan]Select an option[/bold cyan]",
+            choices=["0", "1", "2", "3", "4", "5", "6"],
+            default="1"
+        )
+
+    def get_target_word(self) -> str:
+        """Get target word for testing.
+
+        Returns:
+            Valid 5-letter target word
+        """
+        return self.get_word_input("Enter the target word to solve")
+
+    def get_guess_choice(self, recommendation: any) -> str:
+        """Get user's choice for the recommended guess.
+
+        Args:
+            recommendation: Solver's guess recommendation
+
+        Returns:
+            User's choice: "accept", "custom", or "manual"
+        """
+        self.console.print(f"\n[bold yellow]Recommended guess: [green]{recommendation.guess}[/green][/bold yellow]")
+
+        return Prompt.ask(
+            "What would you like to do?",
+            choices=["accept", "custom", "manual"],
+            default="accept"
+        )
+
+    def get_custom_guess(self) -> str:
+        """Get custom guess word from user.
+
+        Returns:
+            Valid 5-letter guess word
+        """
+        return self.get_word_input("Enter your custom guess")
+
+    def get_manual_guess(self) -> str:
+        """Get manual guess word from user.
+
+        Returns:
+            Valid 5-letter guess word
+        """
+        return self.get_word_input("Enter your manual guess")
+
+    def get_pattern_feedback(self, guess: str) -> str:
+        """Get pattern feedback for a guess.
+
+        Args:
+            guess: The guessed word
+
+        Returns:
+            Pattern string in G/Y/X format
+        """
+        return self.get_pattern_input(
+            guess,
+            f"Enter the pattern for '{guess}' (G=🟩, Y=🟨, X=⬜)"
+        )
+
+    def get_benchmark_strategies(self) -> list[str]:
+        """Get list of strategies to benchmark.
+
+        Returns:
+            List of strategy names
+        """
+        available = ["entropy", "ml", "hybrid", "adaptive"]
+        selected = []
+
+        self.console.print("\n[bold]Select strategies to benchmark:[/bold]")
+        for strategy in available:
+            if self.get_yes_no_input(f"Include {strategy} strategy?", default=True):
+                selected.append(strategy)
+
+        return selected or ["hybrid"]  # Default to hybrid if none selected
+
+    def get_advanced_settings(self) -> dict[str, any]:
+        """Get advanced solver settings from user.
+
+        Returns:
+            Dictionary of advanced settings
+        """
+        settings = {}
+
+        # ML model settings
+        if self.get_yes_no_input("Enable ML predictions?", default=True):
+            settings["use_ml"] = True
+            settings["ml_weight"] = float(Prompt.ask("ML weight (0.0-1.0)", default="0.3"))
+
+        # Entropy settings
+        if self.get_yes_no_input("Enable entropy calculations?", default=True):
+            settings["use_entropy"] = True
+            settings["entropy_weight"] = float(Prompt.ask("Entropy weight (0.0-1.0)", default="0.7"))
+
+        # Performance settings
+        settings["use_caching"] = self.get_yes_no_input("Enable caching?", default=True)
+        settings["parallel_processing"] = self.get_yes_no_input("Enable parallel processing?", default=True)
+
+        # Learning settings
+        settings["adaptive_learning"] = self.get_yes_no_input("Enable adaptive learning?", default=True)
+
+        return settings
