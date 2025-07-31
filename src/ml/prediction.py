@@ -56,28 +56,47 @@ class PredictionEngine:
         logger.debug(f"Predicting scores for {len(possible_words)} words")
 
         try:
-            if self._use_heuristic or not self._is_trained:
+            # Always use our trained model if available
+            if self._model is not None and self._is_trained:
+                # Extract features for each word
+                features_list = []
+                valid_words = []
+
+                for word in possible_words:
+                    try:
+                        word_features = self._feature_extractor.extract_features(
+                            word, possible_words, previous_guesses
+                        )
+                        features_list.append(word_features)
+                        valid_words.append(word)
+                    except Exception as e:
+                        logger.debug(f"Skipping word {word} due to feature extraction error: {e}")
+                        continue
+
+                if not features_list:
+                    logger.warning("No valid features extracted, falling back to heuristic")
+                    return self._heuristic_predictions(possible_words, previous_guesses)
+
+                # Get model predictions
+                features_array = np.array(features_list)
+                predictions = self._model.predict(features_array)
+
+                # Convert to dictionary
+                word_scores = {}
+                for word, score in zip(valid_words, predictions, strict=False):
+                    word_scores[word] = float(np.clip(score, 0.0, 1.0))
+
+                # Add any remaining words with heuristic scores
+                for word in possible_words:
+                    if word not in word_scores:
+                        heuristic_scores = self._heuristic_predictions([word], previous_guesses)
+                        word_scores[word] = heuristic_scores.get(word, 0.1)
+
+                logger.debug(f"ML predictions generated for {len(word_scores)} words")
+                return word_scores
+            else:
+                # Use heuristic predictions
                 return self._heuristic_predictions(possible_words, previous_guesses)
-
-            # Extract features for each word
-            features = []
-            for word in possible_words:
-                word_features = self._feature_extractor.extract_features(
-                    word, possible_words, previous_guesses
-                )
-                features.append(word_features)
-
-            # Get model predictions
-            features_array = np.array(features)
-            predictions = self._model.predict(features_array)
-
-            # Convert to dictionary
-            word_scores = {}
-            for word, score in zip(possible_words, predictions, strict=False):
-                word_scores[word] = float(score)
-
-            logger.debug(f"ML predictions generated for {len(word_scores)} words")
-            return word_scores
 
         except Exception as e:
             logger.error(f"Prediction failed, falling back to heuristic: {e}")
@@ -111,19 +130,100 @@ class PredictionEngine:
         Raises:
             MLModelError: If training fails
         """
-        logger.info("Starting ML model training")
+        logger.info(f"Starting ML model training with {len(training_data)} samples")
+
+        if not training_data:
+            logger.warning("No training data provided, using heuristic model")
+            self._is_trained = True
+            self._use_heuristic = True
+            return
 
         try:
-            # For now, just mark as trained and continue using heuristics
-            # Full ML implementation will be added in Phase 3
-            self._is_trained = True
-            self._use_heuristic = True  # Keep using heuristics for now
+            # Import required models
+            from .models import HeuristicModel, SimpleLinearModel
 
-            logger.info("ML model training completed (heuristic mode)")
+            # Extract features and targets from training data
+            features_list = []
+            targets_list = []
+
+            for sample in training_data:
+                try:
+                    # Extract features for the word
+                    word = sample.get('word', '')
+                    if not word:
+                        continue
+
+                    # Create mock possible words and previous guesses for feature extraction
+                    remaining_words = max(1, sample.get('remaining_words', 100))
+                    mock_possible_words = [word] * min(remaining_words, 50)  # Simplified
+                    mock_previous_guesses = []
+
+                    # Extract features
+                    word_features = self._feature_extractor.extract_features(
+                        word, mock_possible_words, mock_previous_guesses
+                    )
+
+                    # Use success score as target
+                    target_score = sample.get('success_score', sample.get('entropy', 0.5))
+
+                    features_list.append(word_features)
+                    targets_list.append(target_score)
+
+                except Exception as e:
+                    logger.debug(f"Skipping training sample: {e}")
+                    continue
+
+            if len(features_list) < 10:
+                logger.warning(f"Insufficient training samples ({len(features_list)}), using heuristic model")
+                self._model = HeuristicModel(adaptive_weights=True)
+                self._is_trained = True
+                self._use_heuristic = True
+                return
+
+            # Convert to numpy arrays
+            features = np.array(features_list)
+            targets = np.array(targets_list)
+
+            logger.info(f"Training with {len(features)} samples, {features.shape[1]} features")
+
+            # Train enhanced heuristic model with adaptive weights
+            self._model = HeuristicModel(adaptive_weights=True)
+            self._model.train(features, targets)
+
+            # Try to train a simple linear model as backup
+            try:
+                linear_model = SimpleLinearModel()
+                linear_model.train(features, targets)
+
+                # Use linear model if we have enough data
+                if len(features) > 100:
+                    self._model = linear_model
+                    self._use_heuristic = False
+                    logger.info("Trained SimpleLinearModel successfully")
+                else:
+                    self._use_heuristic = True
+                    logger.info("Using enhanced HeuristicModel with adaptive weights")
+
+            except Exception as e:
+                logger.warning(f"Linear model training failed, using heuristic: {e}")
+                self._use_heuristic = True
+
+            self._is_trained = True
+            logger.info("ML model training completed successfully")
 
         except Exception as e:
             logger.error(f"ML model training failed: {e}")
-            raise MLModelError(f"Training failed: {e}") from e
+
+            # Fallback to heuristic model
+            try:
+                from .models import HeuristicModel
+                self._model = HeuristicModel(adaptive_weights=True)
+                self._is_trained = True
+                self._use_heuristic = True
+                logger.info("Fallback to enhanced heuristic model")
+            except Exception as fallback_error:
+                logger.error(f"Fallback to heuristic also failed: {fallback_error}")
+                raise MLModelError(f"Training failed: {e}") from e
 
     def _heuristic_predictions(
         self,

@@ -85,7 +85,7 @@ class TrainingDataGenerator:
 
             # Extract features
             try:
-                guess_features = self.feature_extractor.extract_guess_features(
+                guess_features = self.feature_extractor.extract_features(
                     guess, self.word_list, previous_guesses
                 )
                 features_list.append(guess_features)
@@ -132,7 +132,7 @@ class TrainingDataGenerator:
         for word in selected_words:
             try:
                 # Extract word features
-                word_features = self.feature_extractor.extract_word_features(word)
+                word_features = self.feature_extractor.extract_features(word, [word], [])
                 features_list.append(word_features)
 
                 # Calculate difficulty based on multiple factors

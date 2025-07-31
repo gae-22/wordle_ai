@@ -622,14 +622,50 @@ class WordleSolver:
         Raises:
             MLModelError: If training fails
         """
-        logger.info("Starting ML model training")
+        logger.info("Starting comprehensive ML model training")
 
         try:
-            # Generate training data from benchmark runs
+            # Generate training data from game simulations
             training_data = self._generate_training_data()
+
+            if not training_data:
+                logger.warning("No training data generated, models will use defaults")
+                return
+
+            logger.info(f"Generated {len(training_data)} training samples")
 
             # Train prediction models
             self._prediction_engine.train_models(training_data)
+
+            # Update adaptive learning if available
+            try:
+                from ..ml.adaptive_learning import GameOutcome, OnlineLearner
+
+                # Create game outcomes from training data
+                outcomes = []
+                for sample in training_data[:100]:  # Limit for performance
+                    outcome = GameOutcome(
+                        target_word=sample.get('target', ''),
+                        guesses=[sample.get('word', '')],
+                        patterns=[sample.get('pattern', 'XXXXX')],
+                        attempts=sample.get('attempt', 1),
+                        success=sample.get('solved', False),
+                        strategy=self.strategy_name
+                    )
+                    outcomes.append(outcome)
+
+                # Initialize online learner if not exists
+                if not hasattr(self, '_online_learner'):
+                    self._online_learner = OnlineLearner()
+
+                # Update with outcomes
+                for outcome in outcomes:
+                    self._online_learner.update(outcome)
+
+                logger.info(f"Updated adaptive learning with {len(outcomes)} game outcomes")
+
+            except Exception as e:
+                logger.warning(f"Adaptive learning update failed: {e}")
 
             logger.info("ML model training completed successfully")
 
@@ -659,9 +695,125 @@ class WordleSolver:
         """Generate training data for ML models.
 
         Returns:
-            Training data samples
+            Training data samples with features and targets
         """
-        logger.info("Generating training data")
+        logger.info("Generating training data from solved games")
 
-        # For now, return empty list - will be implemented in Phase 3
-        return []
+        training_samples = []
+
+        try:
+            # Get a subset of answer words for training data generation
+            answer_words = self._word_manager.get_answer_words()[:500]  # Limit for performance
+
+            logger.info(f"Generating training data from {len(answer_words)} target words")
+
+            for i, target_word in enumerate(answer_words):
+                if i % 100 == 0:
+                    logger.debug(f"Training data progress: {i}/{len(answer_words)}")
+
+                # Simulate a game for this target word
+                game_samples = self._simulate_game_for_training(target_word)
+                training_samples.extend(game_samples)
+
+            logger.info(f"Generated {len(training_samples)} training samples")
+            return training_samples
+
+        except Exception as e:
+            logger.error(f"Failed to generate training data: {e}")
+            return []
+
+    def _simulate_game_for_training(self, target_word: str) -> list[dict[str, Any]]:
+        """Simulate a game to generate training samples.
+
+        Args:
+            target_word: The word to solve for
+
+        Returns:
+            List of training samples from this game
+        """
+        samples = []
+        possible_words = self._word_manager.get_valid_words().copy()
+        guesses_made = []
+
+        try:
+            for attempt in range(1, min(self.max_attempts + 1, 5)):  # Limit attempts for training
+                if not possible_words:
+                    break
+
+                # Get the best guess using current strategy
+                guess = self._strategy.get_best_guess(possible_words, guesses_made)
+
+                # Calculate pattern
+                pattern = self._pattern_matcher.generate_pattern(guess, target_word)
+
+                # Calculate metrics for this guess
+                entropy = self._entropy_calculator.calculate_guess_entropy(guess, possible_words)
+
+                # Create training sample
+                sample = {
+                    'word': guess,
+                    'target': target_word,
+                    'attempt': attempt,
+                    'remaining_words': len(possible_words),
+                    'entropy': entropy,
+                    'pattern': pattern,
+                    'solved': pattern == "GGGGG",
+                    'success_score': self._calculate_success_score(pattern, attempt, len(possible_words))
+                }
+
+                samples.append(sample)
+
+                # Create guess result for next iteration
+                guess_result = GuessResult(
+                    guess=guess,
+                    pattern=pattern,
+                    remaining_words=len(possible_words),
+                    entropy=entropy,
+                    ml_score=0.5,  # Placeholder
+                    processing_time=0.001
+                )
+                guesses_made.append(guess_result)
+
+                # Check if solved
+                if pattern == "GGGGG":
+                    break
+
+                # Filter words for next iteration
+                possible_words = self._pattern_matcher.filter_words(
+                    possible_words, guess, pattern
+                )
+
+            return samples
+
+        except Exception as e:
+            logger.warning(f"Failed to simulate game for {target_word}: {e}")
+            return []
+
+    def _calculate_success_score(self, pattern: str, attempt: int, remaining_words: int) -> float:
+        """Calculate success score for a guess.
+
+        Args:
+            pattern: Pattern result (G/Y/X format)
+            attempt: Current attempt number
+            remaining_words: Number of remaining possible words
+
+        Returns:
+            Success score between 0 and 1
+        """
+        # Base score from pattern quality
+        green_count = pattern.count('G')
+        yellow_count = pattern.count('Y')
+
+        # Pattern quality score (0-1)
+        pattern_score = (green_count * 0.6 + yellow_count * 0.3) / 5.0
+
+        # Early attempt bonus
+        attempt_score = max(0.0, (7 - attempt) / 6.0)
+
+        # Information gain score (fewer remaining words is better)
+        info_score = max(0.0, 1.0 - (remaining_words / 1000.0))
+
+        # Combined score
+        success_score = (pattern_score * 0.5 + attempt_score * 0.3 + info_score * 0.2)
+
+        return min(1.0, max(0.0, success_score))
